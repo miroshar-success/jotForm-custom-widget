@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
+        <style>
+            .jotform-custom-widget-wrapper {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .jotform-custom-widget-input-wrapper {
+                display: flex;
+                gap: 1em;
+                align-items: center;
+                margin-bottom: 10px;
+            }
+            .jotform-custom-widget-wrapper input {
+                margin-bottom: 0;
+            }
+
+            .jotform-custom-widget-wrapper ul {
+                list-style-type: none;
+                padding: 0;
+                margin: 0;
+                background-color: #fff;
+                border: 1px solid #ccc;
+                max-height: 200px;
+                overflow-y: auto;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                position: absolute;
+                z-index: 1;
+            }
+
+            .jotform-custom-widget-wrapper li {
+                cursor: pointer;
+                padding: 5px 10px;
+            }
+
+            .jotform-custom-widget-wrapper li:hover {
+                background-color: #f2f2f2;
+            }
+
+            .jotform-custom-widget-wrapper input[type="text"] {
+                padding: 6px 10px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+                font-size: 14px;
+                line-height: 1.42857143;
+                color: #555;
+            }
+
+            .jotform-custom-widget-wrapper button {
+                padding: 6px 12px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: #fff;
+                color: #333;
+                font-size: 14px;
+                line-height: 1.42857143;
+                cursor: pointer;
+            }
+
+            .jotform-custom-widget-wrapper button:hover {
+                background-color: #f2f2f2;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="main" class="jotform-custom-widget-wrapper">
+            <h3 class="header">Auto Configurable List Widget</h3>
+            <div id="inputWrapper"></div>
+            <button id="addButton"></button>
+        </div>
+        <script type="text/javascript">
+            JFCustomWidget.subscribe("ready", function () {
+                var autocompleteLabel = JFCustomWidget.getWidgetSetting('AutocompleteLabel');
+                var regularInputLabel = JFCustomWidget.getWidgetSetting('RegularInputLabel');
+                var autocompleteOptions = JFCustomWidget.getWidgetSetting('AutocompleteOptions').split('|');
+                var addButtonText = JFCustomWidget.getWidgetSetting('AddButtonText');
+
+                var inputWrapper = document.getElementById('inputWrapper');
+                var addButton = document.getElementById('addButton');
+                addButton.textContent = addButtonText;
+
+                function createInputSet(showDeleteButton = false) {
+                    var inputSet = document.createElement('div');
+                    inputSet.classList.add('jotform-custom-widget-input-wrapper');
+
+                    var autocompleteDivWrapper = document.createElement('div');
+                    autocompleteDivWrapper.style.position = 'relative';
+                    var autocompleteLabelElement = document.createElement('span');
+                    autocompleteLabelElement.textContent = autocompleteLabel;
+                    var autocompleteInput = document.createElement('input');
+                    autocompleteInput.type = 'text';
+                    autocompleteInput.id = 'userInput';
+                    autocompleteInput.autocomplete = 'off';
+                    var suggestionList = document.createElement('ul');
+                    suggestionList.id = 'suggestionList';
+
+                    autocompleteDivWrapper.appendChild(autocompleteLabelElement);
+                    autocompleteDivWrapper.appendChild(autocompleteInput);
+                    autocompleteDivWrapper.appendChild(suggestionList);
+
+                    var regularInputDivWrapper = document.createElement('div');
+                    var regularInputLabelElement = document.createElement('span');
+                    regularInputLabelElement.textContent = regularInputLabel;
+                    var regularInput = document.createElement('input');
+                    regularInput.type = 'text';
+                    regularInput.id = 'regularInput';
+
+                    regularInputDivWrapper.appendChild(regularInputLabelElement);
+                    regularInputDivWrapper.appendChild(regularInput);
+
+                    if (showDeleteButton) {
+                        var deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.addEventListener('click', function () {
+                            inputWrapper.removeChild(inputSet);
+                        });
+                        inputSet.appendChild(deleteButton);
+                    }
+
+                    inputSet.appendChild(autocompleteDivWrapper);
+                    inputSet.appendChild(regularInputDivWrapper);
+
+                    inputWrapper.appendChild(inputSet);
+
+                    autocompleteInput.addEventListener('input', handleAutocompleteSuggestions);
+                    autocompleteInput.addEventListener('focus', handleAutocompleteSuggestions);
+                    regularInput.addEventListener('input', handleRegularInput);
+                }
+
+                function handleAutocompleteSuggestions() {
+                    var inputValue = this.value.toLowerCase();
+                    var suggestionListElement = this.nextElementSibling;
+                    suggestionListElement.innerHTML = '';
+
+                    autocompleteOptions.forEach(function (option) {
+                        if (option.toLowerCase().includes(inputValue)) {
+                            var listItem = document.createElement('li');
+                            listItem.textContent = option;
+                            listItem.addEventListener('click', function () {
+                                this.parentNode.previousElementSibling.value = this.textContent;
+                                suggestionListElement.innerHTML = '';
+                            });
+                            suggestionListElement.appendChild(listItem);
+                        }
+                    });
+                }
+
+                function handleRegularInput() {
+                    var regularInputValue = this.value;
+                    console.log('Regular Input Value:', regularInputValue);
+                }
+
+                createInputSet(); // Create the initial input set without the delete button
+
+                addButton.addEventListener('click', function () {
+                    createInputSet(true); // Create a new input set with the delete button
+                });
+
+                JFCustomWidget.subscribe("submit", function () {
+                    var userInputValues = Array.from(document.querySelectorAll('#userInput')).map((input) => input.value);
+                    var regularInputValues = Array.from(document.querySelectorAll('#regularInput')).map((input) => input.value);
+
+                    var tableData = [];
+                    for (let i = 0; i < userInputValues.length; i++) {
+                        tableData.push({
+                            'Autocomplete Value': userInputValues[i],
+                            'Regular Input Value': regularInputValues[i]
+                        });
+                    }
+
+                    var msg = {
+                        valid: true,
+                        value: tableData
+                    }
+                    JFCustomWidget.sendSubmit(msg);
+                });
+            });
+        </script>
+    </body>
+</html>
